@@ -1,0 +1,14 @@
+# writeQueueSize: 4096
+
+paths:
+  cam:
+    source: rpiCamera
+    rpiCameraWidth: 1920
+    rpiCameraHeight: 1080
+    # rpiCameraAfMode: auto
+    # rpiCameraAfRange: normal
+    # rpiCameraFPS: 10
+    rpiCameraBitrate: 15000000
+    rpiCameraCodec: hardwareH264
+    rpiCameraFPS: 30
+    
