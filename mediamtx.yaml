@@ -8,7 +8,7 @@ paths:
     # rpiCameraAfMode: auto
     # rpiCameraAfRange: normal
     # rpiCameraFPS: 10
-    rpiCameraBitrate: 15000000
+    rpiCameraBitrate: 10000000
     rpiCameraCodec: hardwareH264
     rpiCameraFPS: 30
     
