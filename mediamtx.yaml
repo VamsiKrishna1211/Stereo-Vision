@@ -1,8 +1,0 @@
-paths:
-  cam:
-    source: rpiCamera
-    rpiCameraWidth: 1920
-    rpiCameraHeight: 1080
-    rpiCameraFPS: 30
-    rpiCameraBitrate: 5000000
-    rpiCameraCodec: hardwareH264
