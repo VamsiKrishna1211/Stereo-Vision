@@ -10,7 +10,7 @@ Assuming we need a Docker container (system is not Ubuntu 22.04):
 ```
 sudo rocker --x11 --name humble --nocleanup osrf/ros:humble-desktop
 ```
-Now within container
+### Within Docker container
 ```
 apt install git -y
 ```
