@@ -30,7 +30,7 @@ import nest_asyncio
 # nest_asyncio.apply()
 
 
-device = 'cpu' if not torch.backends.mps.is_available() else 'mps'
+device = 'cpu' if not torch.backends.mps.is_available() else 'cpu'
 print(device)
 
 # Camera 0 (Left) Intrinsics and Distortion Coefficients
@@ -78,10 +78,15 @@ def create_model(cfg_file, ):
 
 
     transform = build_transform_by_cfg(transform_config)
-    model = models.lightstereo.lightstereo.LightStereo(cfgs.MODEL)
-    model_weights = torch.load("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/models/LightStereo-L-SceneFlow.ckpt", map_location=device)
+    # model = models.lightstereo.lightstereo.LightStereo(cfgs.MODEL)
+    model = models.stereobase.trainer.StereoBaseGRU(cfgs.MODEL)
+
+    # model_weights = torch.load("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/models/LightStereo-LX-SceneFlow.ckpt", map_location=device)
+    model_weights = torch.load("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/models/StereoBase_SceneFlow.pth", map_location=device)
 
     model.load_state_dict(model_weights['model_state'])
+    model.classifier.weight.data = model_weights['model_state']['classifier.weight']
+
 
 
     # model = models.psmnet.psmnet.PSMNet(cfgs.MODEL)
@@ -111,11 +116,11 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
         sample[k] = v.to(device) if torch.is_tensor(v) else v
         print(sample[k].device)
 
-    # left_image_out = transform(left_image)
-    # right_image_out = transform(right_image)
+    # # left_image_out = transform(left_image)
+    # # right_image_out = transform(right_image)
 
-    # left_image = left_image.to(device)
-    # right_image = right_image.to(device)
+    # # left_image = left_image.to(device)
+    # # right_image = right_image.to(device)
 
     print("Model Running")
     with torch.no_grad():
@@ -158,9 +163,9 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
 
     # stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
     #                              numDisparities = num_disp,
-    #                                 blockSize = 5,
+    #                                 blockSize = 3,
     #                                 P1 = 8*3*window_size**2,
-    #                                 P2 = 32*3*window_size**2,
+    #                                 P2 = 64*3*window_size**2,
     #                                 disp12MaxDiff = 1,
     #                                 uniquenessRatio = 1,
     #                                 speckleWindowSize = 100,
@@ -170,11 +175,34 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
     #                                 # mode= cv2.StereoSGBM_MODE_HH
     #                            )
     # disparity = stereo.compute(left_image, right_image).astype(np.float32)/16.0
-    # disparity = disparity / disparity.max() * 16
+    # disparity = disparity / (disparity.max() * 16)
     # disparity[disparity <= 0] = 10e-6
+
+
+    # (Load images and initialize StereoSGBM as before)
+
+    # Create right matcher and WLS filter
+    # stereoR = cv2.ximgproc.createRightMatcher(stereo)
+    # wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=stereo)
+
+    # Compute disparity maps for left and right images
+    # disparity_left = stereo.compute(left_image, right_image).astype(np.float32) / 16.0
+    # disparity_right = stereoR.compute(right_image, left_image).astype(np.float32) / 16.0
+
+    # # Apply WLS filter
+    # wls_filter.setLambda(5000)
+    # wls_filter.setSigmaColor(1.35)
+    # filtered_disparity = wls_filter.filter(disparity_left, left_image, None, disparity_right)
+    # filtered_disp_display = cv2.normalize(filtered_disparity, None, 0, 255, cv2.NORM_MINMAX)
+
+    # disparity = filtered_disp_display
+
 
     # disparity = np.clip(disparity, np.finfo(float).eps, disparity)
     # disparity = (disparity/16 - min_disp) / max_disp
+    # disparity = (disparity - disparity.min()) / (disparity.max())
+    # disparity = cv2.normalize(disparity, None, disparity.min(), disparity.max(), cv2.NORM_MINMAX)
+
     print("Disparity: ", disparity.max(), disparity.min())
     end = time.time()
     print("Time taken for disparity: ", end - start)
@@ -285,7 +313,8 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
 
 
 def process_and_display_streams(rtsp_url_1, rtsp_url_2):
-    model, transform, cfgs = create_model("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/OpenStereo/cfgs/lightstereo/lightstereo_l_sceneflow.yaml")
+    # model, transform, cfgs = create_model("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/OpenStereo/cfgs/lightstereo/lightstereo_lx_sceneflow.yaml")
+    model, transform, cfgs = create_model("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/OpenStereo/cfgs/stereobase/stereobase_sceneflow.yaml")
     o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
     # model = None
     # cfgs = None

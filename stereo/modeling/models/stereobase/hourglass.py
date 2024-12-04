@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from stereo.modeling.common.basic_block_3d import BasicConv3d, BasicDeconv3d
 from .igev_blocks import FeatureAtt
+import torch.nn.functional as F
 
 
 class Hourglass(nn.Module):
@@ -87,11 +88,13 @@ class Hourglass(nn.Module):
         conv3 = self.feature_att_32(conv3, features[3])  # [bz, 6c, disp/32, H/32, W/32]
 
         conv3_up = self.conv3_up(conv3)  # [bz, 4c, disp/16, H/16, W/16]
+        conv2 = F.interpolate(conv2, size=(conv3_up.shape[-3], conv3_up.shape[-2], conv3_up.shape[-1]), mode='nearest')
         conv2 = torch.cat((conv3_up, conv2), dim=1)
         conv2 = self.agg_0(conv2)  # [bz, 4c, disp/16, H/16, W/16]
         conv2 = self.feature_att_up_16(conv2, features[2])  # [bz, 4c, disp/16, H/16, W/16]
 
         conv2_up = self.conv2_up(conv2)  # [bz, 2c, disp/8, H/8, W/8]
+        conv1 = F.interpolate(conv1, size=(conv2_up.shape[-3], conv2_up.shape[-2], conv2_up.shape[-1]), mode='nearest')
         conv1 = torch.cat((conv2_up, conv1), dim=1)
         conv1 = self.agg_1(conv1)
         conv1 = self.feature_att_up_8(conv1, features[1])  # [bz, 2c, disp/8, H/8, W/8]

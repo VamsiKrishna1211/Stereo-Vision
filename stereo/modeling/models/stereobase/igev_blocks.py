@@ -44,6 +44,7 @@ class FeatureAtt(nn.Module):
 
     def forward(self, cv, feat):
         feat_att = self.feat_att(feat).unsqueeze(2)
+        cv = F.interpolate(cv, size=(feat.shape[-3], feat.shape[-2], feat.shape[-1]), mode='nearest')
         cv = torch.sigmoid(feat_att) * cv
         return cv
 
