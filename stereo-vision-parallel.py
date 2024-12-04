@@ -33,37 +33,38 @@ import nest_asyncio
 device = 'cpu' if not torch.backends.mps.is_available() else 'mps'
 print(device)
 
-focal_length_left_h = 1404.9707644369653
-focal_length_left_v = 1403.9142834191978
-cx_R = 959.6977300305203  
-cy_R = 541.5754355100794
-camera_matrix_left = np.array([[focal_length_left_h, 0, cx_R], [0, focal_length_left_v, cy_R], [0, 0, 1]])
-# 0.053564863912631905 0.05216935306303675 -0.00025046500414719426 -0.0007604197477040687 -0.20467060036288837
-dist_coeffs_left = np.array([0.053564863912631905, 0.05216935306303675, -0.00025046500414719426, -0.0007604197477040687, -0.20467060036288837])
+# Camera 0 (Left) Intrinsics and Distortion Coefficients
+focal_length_left_h = 1403.5560764623492
+focal_length_left_v = 1404.830787015755
+cx_L = 955.115656063745  
+cy_L = 542.6467350454939
+camera_matrix_left = np.array([[focal_length_left_h, 0, cx_L], [0, focal_length_left_v, cy_L], [0, 0, 1]])
+dist_coeffs_left = np.array([0.059943853080391435, -0.09449801861281201, -0.000339604376652956, -0.0008648781334691029, 0.01652908856606341])
 newcameramtx_left, roi = cv2.getOptimalNewCameraMatrix(camera_matrix_left, dist_coeffs_left, (1920,1080), 1, (1920,1080))
 
-focal_length_right_h = 1403.625781226055
-focal_length_right_v = 1403.6775759719974
-cx_L = 970.6823606246131  
-cy_L = 537.652774517532 
-
-camera_matrix_right = np.array([[focal_length_right_h, 0, cx_L], [0, focal_length_right_v, cy_L], [0, 0, 1]])
-# 0.042743552637767517 0.003474288976375031 -0.00032838506356857537 -4.26553021947547e-05 -0.10961391062739367
-dist_coeffs_right = np.array([0.042743552637767517, 0.003474288976375031, -0.00032838506356857537, -4.26553021947547e-05, -0.10961391062739367])
+# Camera 1 (Right) Intrinsics and Distortion Coefficients
+focal_length_right_h = 1420.392657390206
+focal_length_right_v = 1420.6611660815709
+cx_R = 955.489082124398  
+cy_R = 542.1740143587975 
+camera_matrix_right = np.array([[focal_length_right_h, 0, cx_R], [0, focal_length_right_v, cy_R], [0, 0, 1]])
+dist_coeffs_right = np.array([0.03618136988971302, -0.01505245065735325, -0.0006118962522464938, -0.0012799994600294303, -0.10374525867862963])
 newcameramtx_right, roi = cv2.getOptimalNewCameraMatrix(camera_matrix_right, dist_coeffs_right, (1920,1080), 1, (1920,1080))
 
 # Rotation and Translation Matrices
 R = np.array([
-    [0.9997389194630696, 0.020656440024216148, 0.009767517409253334],
-    [-0.020840842660613458, 0.9995990020830661, 0.019170141150603396],
-    [-0.009367613784185385, -0.01936869949336983, 0.9997685238553602]
+    [0.9997444428060865, 0.019682980943854757, 0.011118873122367924],
+    [-0.019903005322107623, 0.9996011141875738, 0.020037038057290003],
+    [-0.01072004932337632, -0.020253216439000073, 0.9997374094062798]
 ])
 
-T = np.array([-10.065795209719223, 0.0137315547971429, -0.2450403146577965])
+T = np.array([-10.590759539995027, 0.03519953792984569, 0.2541815026223823])
 
 # baseline = 0.193 # mm meters
 # baseline = baseline/1000
-baseline = 10.1
+# baseline = 10.1
+# baseline = -T[0]/100
+baseline = -T[0]
 # baseline = 0.07162429074481386
 
 
@@ -78,14 +79,14 @@ def create_model(cfg_file, ):
 
     transform = build_transform_by_cfg(transform_config)
     model = models.lightstereo.lightstereo.LightStereo(cfgs.MODEL)
-    model_weights = torch.load("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/models/LightStereo-S-SceneFlow.ckpt", map_location=device)
+    model_weights = torch.load("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/models/LightStereo-L-SceneFlow.ckpt", map_location=device)
 
     model.load_state_dict(model_weights['model_state'])
 
 
     # model = models.psmnet.psmnet.PSMNet(cfgs.MODEL)
 
-    model = torch.compile(model, backend="cudagraphs")
+    # model = torch.compile(model)
     model.to(device)
 
     return model, transform, cfgs
@@ -119,7 +120,7 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
     print("Model Running")
     with torch.no_grad():
         with torch.amp.autocast(device_type=device, enabled=cfgs.OPTIMIZATION.AMP):
-            torch.compiler.cudagraph_mark_step_begin()
+            # torch.compiler.cudagraph_mark_step_begin()
             start = time.time()
             model_pred = model(sample)
             disp_pred = model_pred['disp_pred'].squeeze(1)
@@ -128,7 +129,7 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
             disparity = disp_pred.cpu().squeeze().numpy()
 
             print("Time taken: ", time.time() - start)
-    # print("Model Run Done")
+    print("Model Run Done")
 
         # GY Camera
 
@@ -143,12 +144,12 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
     # cy=cy_L    # Replace with your camera's principal point in y
     # )
 
-    # window_size = 4
+    # window_size = 5
     # min_disp = 0
-    # ndisp = 350
+    # ndisp = 16*8
     # max_disp = ndisp
 
-    # num_disp = ((max_disp - min_disp)//16)*16
+    # num_disp = 16*15#((max_disp - min_disp)//16)*16
 
     # start = time.time()
 
@@ -157,21 +158,26 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
 
     # stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
     #                              numDisparities = num_disp,
-    #                                 blockSize = 11,
+    #                                 blockSize = 5,
     #                                 P1 = 8*3*window_size**2,
-    #                                 P2 = 64*3*window_size**2,
+    #                                 P2 = 32*3*window_size**2,
     #                                 disp12MaxDiff = 1,
-    #                                 uniquenessRatio = 15,
+    #                                 uniquenessRatio = 1,
     #                                 speckleWindowSize = 100,
     #                                 speckleRange = 32,
-    #                                 preFilterCap = 10,
+    #                                 preFilterCap = 63,
     #                                 mode = cv2.StereoSGBM_MODE_SGBM_3WAY
+    #                                 # mode= cv2.StereoSGBM_MODE_HH
     #                            )
-    # disparity = stereo.compute(left_image, right_image).astype(np.float32)
+    # disparity = stereo.compute(left_image, right_image).astype(np.float32)/16.0
+    # disparity = disparity / disparity.max() * 16
+    # disparity[disparity <= 0] = 10e-6
+
+    # disparity = np.clip(disparity, np.finfo(float).eps, disparity)
     # disparity = (disparity/16 - min_disp) / max_disp
-    # end = time.time()
-    # print("Time taken for disparity: ", end - start)
-    # disparity = np.clip(disparity, np.finfo(float).eps, 255)
+    print("Disparity: ", disparity.max(), disparity.min())
+    end = time.time()
+    print("Time taken for disparity: ", end - start)
 
     # camera_intrinsic_R = o3d.camera.PinholeCameraIntrinsic(
     #     width=right_image.shape[0],  # Replace with your image width
@@ -184,7 +190,15 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
 
     plt.imshow(disparity, cmap='grey')
     plt.show()
-    depth = (focal_length_left_v * baseline) / (disparity)
+    depth = (focal_length_left_h * baseline) / (disparity)
+    # depth_map_normalized = cv2.normalize(depth, None, 0, 255, cv2.NORM_MINMAX)
+    # depth_map_normalized = np.uint8(depth_map_normalized)
+
+    # depthcolor = cv2.applyColorMap(depth_map_normalized, cv2.COLORMAP_JET)  
+    
+
+    plt.imshow(depth, cmap='gist_heat')
+    plt.show()
 
     print("returning depth")
 
@@ -271,8 +285,11 @@ def get_depth_map(cfgs, model: torch.nn.Module, transform, left_image, right_ima
 
 
 def process_and_display_streams(rtsp_url_1, rtsp_url_2):
-    model, transform, cfgs = create_model("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/OpenStereo/cfgs/lightstereo/lightstereo_s_sceneflow.yaml")
+    model, transform, cfgs = create_model("/Users/vamsikrishna/Data/projects/Robot-Vision-Project/stereo-depth-mapping/OpenStereo/cfgs/lightstereo/lightstereo_l_sceneflow.yaml")
     o3d.utility.set_verbosity_level(o3d.utility.VerbosityLevel.Debug)
+    # model = None
+    # cfgs = None
+    # transform = None
     
     # pcd = o3d.geometry.PointCloud()
     # vis = o3d.visualization.Visualizer()
