@@ -43,12 +43,12 @@ rosdep install --ignore-src --from-paths src -y -r
 Colcon build may fail/freeze your system!!! Below, the parallel workers flag is already trying to fix this. If this still freezes, then use the command below that sets the execution to sequential (it will take a lot more time but shouldn't freeze)
 ```
 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --parallel-workers 3
-source $COLCON_WS/install/setup.bash
+source ~/workspace/ros2_kortex_ws/install/setup.bash
 ```
 Sequential execution for colcon build if needed:
 ```
 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --executor sequential
-source $COLCON_WS/install/setup.bash
+source ~/workspace/ros2_kortex_ws/install/setup.bash
 ```
 Everything should be set up! Test:
 ```
