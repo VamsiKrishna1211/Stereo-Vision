@@ -48,6 +48,7 @@ source ~/workspace/ros2_kortex_ws/install/setup.bash
 ```
 Sequential execution for colcon build if needed:
 ```
+export MAKEFLAGS="-j 1"
 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --executor sequential
 source ~/workspace/ros2_kortex_ws/install/setup.bash
 ```
