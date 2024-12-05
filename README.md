@@ -33,7 +33,8 @@ vcs import src --skip-existing --input src/ros2_kortex/simulation.humble.repos
 IF realtime_tools IS STILL **NOT** SYNCED TO NEWEST VERSION ON humble BRANCH. Last time I ran everything this was the case and had to do the following step.
 ```
 cd $COLCON_WS
-git clone https://github.com/ros-controls/realtime_tools.git
+git clone https://github.com/ros-controls/realtime_tools.git src/ros2_kortex
+apt update
 rosdep install --ignore-src --from-paths src -y -r
 ```
 IF realtime_tools **IS** SYNCED TO NEWEST VERSION ON humble BRANCH. Only run this if you didn't already run the command in the previous step.
